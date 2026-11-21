@@ -1,1 +1,1 @@
-MODEL_NAME = "base-model"
+MODEL_NAME = "gpt-4o"
