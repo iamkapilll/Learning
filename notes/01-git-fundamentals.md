@@ -1,106 +1,168 @@
-# Git Fundamentals & Branching
+# Git & GitHub — Hour 1 Visual Notes
+
+**Goal:** Understand Git's mental model, commits, HEAD, branches and merges. **Environment:** Windows PowerShell.
 
 ## 1. Git vs GitHub
-- Git: Distributed version control system.
-- GitHub: Platform for hosting Git repositories and collaboration.
 
-## 2. Git Architecture
-Working Directory → Staging Area → Local Repository → Remote Repository
+Git is distributed version control on your computer; GitHub hosts repositories and adds collaboration (PRs, issues, reviews, Actions). A commit is local until pushed.
 
-- Working Directory: Files being edited.
-- Staging Area: Changes prepared for the next commit.
-- Local Repository: Commit history and Git metadata.
-- Remote Repository: Another repository, often hosted on GitHub.
+## 2. Four areas
 
-## 3. Important Concepts
-- Repository: Project tracked by Git.
-- Commit: Snapshot of staged changes.
-- Branch: Movable pointer to a commit.
-- HEAD: Current checkout reference, normally pointing to a branch.
-- Tracked: File known to Git.
-- Untracked: File not yet added to Git.
-- Staged: Changes selected for the next commit.
+Working tree: editable files. Index/staging: exact changes chosen for next commit. Local repository (.git): objects, commits and references. Remote: optional repository on GitHub or another server.
 
-## 4. Everyday Commands
-```bash
-git init -b main
-git clone <url>
-git status
-git add <file>
-git add .
-git diff
-git diff --staged
-git commit -m "message"
-git log --oneline
-git log --oneline --graph --all
-git show HEAD
+```mermaid
+flowchart LR
+  A[Working directory] -->|git add| B[Staging area / index]
+  B -->|git commit| C[Local repository]
+  C -->|git push| D[Remote repository]
+  D -.->|git fetch| C
 ```
 
-## 5. Branching
-```bash
-git branch
-git branch -a
+## 3. File states
+
+Untracked: not in Git. Tracked/unchanged: matches index. Modified: working file differs from index. Staged: index differs from HEAD. A file can have both staged and unstaged changes.
+
+```mermaid
+flowchart LR
+  A[Edit tracked file] --> B[Modified / unstaged]
+  B -->|git add| C[Staged]
+  C -->|git commit| D[Committed]
+  D -->|edit again| B
+```
+
+## 4. What is a commit?
+
+A commit identifies a tree snapshot, parent commit(s), author/committer information and message. Git hashes objects. A branch is a movable reference to a commit, not a duplicate directory.
+
+## 5. HEAD and history
+
+HEAD usually refers to the checked-out branch. The branch refers to a commit. HEAD~1 means first parent, HEAD~2 means first parent twice. In detached HEAD, HEAD directly refers to a commit.
+
+```mermaid
+gitGraph
+  commit id: "A"
+  commit id: "B"
+  commit id: "C"
+```
+
+`HEAD -> main -> C` when main is checked out at C.
+
+## 6. Branching
+
+Use feature branches to isolate work. git switch -c feature/login creates and checks out a branch; git switch main returns to main. Committing advances only the current branch.
+
+```mermaid
+gitGraph
+  commit id: "A"
+  commit id: "B"
+  branch feature/login
+  checkout feature/login
+  commit id: "C"
+  commit id: "D"
+  checkout main
+```
+
+## 7. Fast-forward merge
+
+If main is an ancestor of feature/login, merging can simply move main to the feature tip. No merge commit is required.
+
+## 8. Three-way merge
+
+When both branches advanced, Git compares the merge base with each branch tip and combines changes. A merge commit normally has two parents. Overlapping incompatible edits can cause conflicts.
+
+```mermaid
+gitGraph
+  commit id: "A"
+  commit id: "B"
+  branch feature/login
+  checkout feature/login
+  commit id: "C"
+  checkout main
+  commit id: "D"
+  merge feature/login
+```
+
+## 9. Safety and good habits
+
+Run git status before staging and committing. Inspect git diff and git diff --staged. Do not commit .env, credentials, .venv, generated files or large model checkpoints. Use gitignore before files are tracked.
+
+## Essential commands
+
+| Command | Why |
+|---|---|
+| `git --version` | Check installation |
+| `git init -b main` | Initialize repository |
+| `git status` | Inspect state |
+| `git add README.md` | Stage selected file |
+| `git diff` | Unstaged tracked changes |
+| `git diff --staged` | Staged changes |
+| `git commit -m "docs: add notes"` | Commit staged snapshot |
+| `git log --oneline --graph --decorate --all` | Inspect commit graph |
+| `git show HEAD` | Inspect current commit |
+| `git branch` | List local branches |
+| `git switch -c feature/login` | Create and switch branch |
+| `git switch main` | Switch to main |
+| `git merge feature/login` | Merge feature into current branch |
+| `git branch -d feature/login` | Delete merged local branch |
+
+## Guided PowerShell lab (run in order)
+
+```powershell
+cd $HOME
+mkdir git-hour1-lab
+cd git-hour1-lab
+git init -b main
+Set-Content README.md "# Git Hour 1"
+git status
+git add README.md
+git diff --staged
+git commit -m "docs: initial README"
+New-Item -ItemType Directory -Path notes
+Set-Content notes/basics.md "# Basics"
+git add notes/basics.md
+git commit -m "docs: add basics notes"
+Add-Content README.md "Learning Git visually."
+git diff
+git add README.md
+git diff --staged
+git commit -m "docs: update README"
+git log --oneline --graph --decorate --all
 git switch -c feature/login
+New-Item -ItemType Directory -Path src
+Set-Content src/login.py 'print("Login placeholder")'
+git add src/login.py
+git commit -m "feat: add login placeholder"
 git switch main
-git switch -
-git branch -m new-name
+git merge feature/login
+git log --oneline --graph --decorate --all
 git branch -d feature/login
 ```
 
-## 6. Merging
-```bash
-git switch main
-git merge feature/login
-```
+**What to observe:** `src/login.py` disappears when switching back to `main` before merging, then appears after merging. The merge should be a fast-forward if main did not advance.
 
-- Fast-forward: Branch pointer moves forward; no merge commit needed.
-- Three-way merge: Git combines diverged histories using a common ancestor.
-- Merge conflict: Git cannot automatically reconcile some changes.
+## 10-minute self-test
 
-## 7. HEAD References
-- HEAD: Current commit.
-- HEAD~1: First parent.
-- HEAD~2: Two first-parent steps back.
-- HEAD^: First parent.
+1. Explain why `git add` is not the same as `git commit`.
+2. Explain why `git commit` does not upload to GitHub.
+3. Stage a change, then edit the file again. What do `git diff` and `git diff --staged` show?
+4. Explain `HEAD`, branch, commit and hash.
+5. Make a feature branch, commit a new file, switch to main, and merge.
+6. Why was your merge fast-forward rather than three-way?
 
-## 8. Commit Message Examples
-- feat: add login
-- fix: handle missing token
-- docs: update README
-- refactor: simplify API handler
-- test: add authentication tests
-- chore: update dependencies
+## Mistakes to avoid
 
-## 9. Key Differences
-- add vs commit: Stage changes vs save a commit.
-- commit vs push: Save locally vs publish remotely.
-- diff vs diff --staged: Unstaged vs staged changes.
-- branch vs switch: Manage branches vs change checkout.
-- fast-forward vs three-way merge: Move pointer vs combine diverged history.
+- `git add .` without checking `git status` and `git diff`.
+- Assuming `.gitignore` removes already-tracked files.
+- Committing `.env` or API keys. Rotate leaked keys immediately.
+- Deleting the `.git` folder.
+- Using `git branch -D` when you mean the safer `-d`.
 
-## 10. Common Mistakes
-- Committing secrets or .env files.
-- Using git add . without inspecting changes.
-- Committing on the wrong branch.
-- Switching branches with unfinished changes.
-- Deleting .git accidentally.
+## Quick interview answers
 
-## 11. Interview Questions
-1. What is Git?
-2. Git vs GitHub?
-3. What is the staging area?
-4. What happens during a commit?
-5. What is HEAD?
-6. What is a branch?
-7. What is a fast-forward merge?
-8. What is a three-way merge?
-9. What is a detached HEAD?
-10. What is the difference between git diff and git diff --staged?
+**What is HEAD?** The current checkout reference, normally a symbolic reference to a branch.  
+**What is a branch?** A movable reference to a commit.  
+**What is a fast-forward merge?** Moving the target branch pointer forward when no divergence exists.  
+**What is a merge commit?** A commit combining histories, normally with two parents.  
+**What is the index?** Git's staging area, representing the proposed next snapshot.
 
-## 12. My Practice
-- Initialized a repository.
-- Created multiple commits.
-- Inspected changes and history.
-- Created and switched branches.
-- Merged a feature branch.
-- Deleted a merged branch.
+**Next:** Hour 2 — remotes, collaboration, merge conflicts, rebase and pull requests.
